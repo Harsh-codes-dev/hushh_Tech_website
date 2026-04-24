@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 
 // Supabase URL for edge function
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || '';
@@ -176,6 +176,7 @@ function generateFallbackData(): StockQuote[] {
 // Hook for fetching stock quotes via Supabase edge function
 export function useStockQuotes(refreshInterval = 120000) {
   const [quotes, setQuotes] = useState<StockQuote[]>(generateFallbackData());
+  const fallbackData = useMemo(() => generateFallbackData(), []);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -205,7 +206,7 @@ export function useStockQuotes(refreshInterval = 120000) {
 
       const data: EdgeFunctionResponse = await response.json();
 
-      if (data.success && data.quotes.length > 0) {
+      if (data.success && data.quotes?.length > 0){
         // Map edge function response to our StockQuote format
         const mappedQuotes: StockQuote[] = data.quotes.map(q => ({
           symbol: q.symbol,
@@ -219,15 +220,25 @@ export function useStockQuotes(refreshInterval = 120000) {
         }));
         
         setQuotes(mappedQuotes);
-        setLastUpdated(new Date());
       }
-      setLoading(false);
+      else {
+ setQuotes(fallbackData);
+}
+setLastUpdated(new Date());
+setLoading(false);
     } catch (err) {
-      console.error('Error fetching stock quotes:', err);
-      setError('Failed to fetch stock quotes');
-      setLoading(false);
-    }
-  }, []);
+  console.error('Error fetching stock quotes:', err);
+
+  setError('Failed to fetch stock quotes');
+
+  // ✅ IMPORTANT: ensure UI still works
+  setQuotes(fallbackData);
+
+  setLastUpdated(new Date());
+
+  setLoading(false);
+}
+}, [fallbackData]);
 
   // Initial fetch
   useEffect(() => {
