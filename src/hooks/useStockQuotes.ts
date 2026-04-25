@@ -206,35 +206,33 @@ export function useStockQuotes(refreshInterval = 120000) {
 
       const data: EdgeFunctionResponse = await response.json();
 
-      if (data.success && data.quotes?.length > 0){
-        // Map edge function response to our StockQuote format
-        const mappedQuotes: StockQuote[] = data.quotes.map(q => ({
-          symbol: q.symbol,
-          displaySymbol: STOCK_SHORT_SYMBOLS[q.symbol] || q.symbol,
-          name: STOCK_NAMES[q.symbol] || q.symbol,
-          currentPrice: q.currentPrice,
-          change: q.change || 0,
-          percentChange: q.percentChange || 0,
-          isUp: (q.percentChange || 0) >= 0,
-          logo: STOCK_LOGOS[q.symbol] || '',
-        }));
-        
-        setQuotes(mappedQuotes);
-      }
-      else {
- setQuotes(fallbackData);
+     if (data.success && data.quotes?.length > 0) {
+  const mappedQuotes: StockQuote[] = data.quotes.map(q => ({
+    symbol: q.symbol,
+    displaySymbol: STOCK_SHORT_SYMBOLS[q.symbol] || q.symbol,
+    name: STOCK_NAMES[q.symbol] || q.symbol,
+    currentPrice: q.currentPrice,
+    change: q.change || 0,
+    percentChange: q.percentChange || 0,
+    isUp: (q.percentChange || 0) >= 0,
+    logo: STOCK_LOGOS[q.symbol] || '',
+  }));
+
+  setQuotes(mappedQuotes);
+  setLastUpdated(new Date()); // ✅ ONLY here
+} else {
+  setQuotes(fallbackData); // ❌ no timestamp update
 }
-setLastUpdated(new Date());
+
 setLoading(false);
-    } catch (err) {
+    }catch (err) {
   console.error('Error fetching stock quotes:', err);
 
   setError('Failed to fetch stock quotes');
-
-  // ✅ IMPORTANT: ensure UI still works
   setQuotes(fallbackData);
 
-  setLastUpdated(new Date());
+  // ❌ DO NOT DO THIS
+  // setLastUpdated(new Date());
 
   setLoading(false);
 }
